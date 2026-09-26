@@ -13,9 +13,9 @@ const RARITY_OPTS = [
   { v: 'mix', label: 'Mélangé' },
 ];
 const DISTANCE_OPTS = [
-  { v: '1', label: 'Même catégorie' },
-  { v: '2', label: 'Association' },
-  { v: '3', label: 'Tiré par les cheveux' },
+  { v: '1', label: 'Faible' },
+  { v: '2', label: 'Moyen' },
+  { v: '3', label: 'Élevé' },
   { v: 'mix', label: 'Mélangé' },
 ];
 
@@ -290,7 +290,10 @@ function render() {
   stopTimer();
   ui.cleanup && ui.cleanup();
   ui.cleanup = null;
-  window.scrollTo(0, 0);
+  // On ne remonte en haut que quand on change d'écran (pas quand on modifie un réglage)
+  const screen = game ? game.phase + ':' + game.distIndex + ':' + game.round : 'setup';
+  if (screen !== ui.lastScreen) window.scrollTo(0, 0);
+  ui.lastScreen = screen;
   if (!game) return renderSetup();
   switch (game.phase) {
     case 'dist-pass': return renderDistPass();

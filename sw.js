@@ -1,5 +1,5 @@
 // Cache hors ligne : incrémenter VERSION à chaque mise à jour des fichiers
-const VERSION = 'undercover-v2';
+const VERSION = 'undercover-v3';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'words.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', e => {
