@@ -169,21 +169,49 @@ function rolesError(n, uc, w) {
    Tirage des mots
    ============================================================ */
 
+// Chaque niveau d'éloignement mélange les trois types de liens (d1 : même catégorie,
+// d2 : association, d3 : tiré par les cheveux) pour que le type de lien reste imprévisible.
+const DISTANCE_WEIGHTS = {
+  '1': [65, 30, 5],
+  '2': [30, 45, 25],
+  '3': [10, 35, 55],
+  'mix': null, // tirage uniforme sur toutes les paires
+};
+
 function pickPair() {
   const rs = settings.rarity === 'mix' ? ['1', '2', '3'] : [settings.rarity];
-  const ds = settings.distance === 'mix' ? ['1', '2', '3'] : [settings.distance];
-  const keys = [];
-  rs.forEach(r => ds.forEach(d => keys.push('r' + r + 'd' + d)));
-
+  const ds = ['1', '2', '3'];
   const used = store.get('uc_used', {});
-  let pool = [];
-  keys.forEach(k => WORDS[k].forEach((p, i) => {
-    if (!(used[k] || []).includes(i)) pool.push({ k, i, p });
-  }));
-  if (pool.length === 0) { // tout a été joué : on recommence ces listes
-    keys.forEach(k => { used[k] = []; });
-    keys.forEach(k => WORDS[k].forEach((p, i) => pool.push({ k, i, p })));
+
+  const poolFor = d => {
+    const pool = [];
+    rs.forEach(r => {
+      const k = 'r' + r + 'd' + d;
+      WORDS[k].forEach((p, i) => { if (!(used[k] || []).includes(i)) pool.push({ k, i, p }); });
+    });
+    return pool;
+  };
+
+  let pools = ds.map(poolFor);
+  if (pools.every(pl => pl.length === 0)) { // tout a été joué : on recommence ces listes
+    rs.forEach(r => ds.forEach(d => { used['r' + r + 'd' + d] = []; }));
+    pools = ds.map(poolFor);
   }
+
+  let pool;
+  const weights = DISTANCE_WEIGHTS[settings.distance];
+  if (!weights) {
+    pool = pools.flat();
+  } else {
+    // Tirage pondéré du type de lien, parmi ceux qui ont encore des paires disponibles
+    const w = weights.map((x, i) => (pools[i].length ? x : 0));
+    let t = Math.random() * w.reduce((a, b) => a + b, 0);
+    let idx = 0;
+    while (idx < w.length - 1 && (t -= w[idx]) >= 0) idx++;
+    if (!pools[idx].length) idx = w.findIndex(x => x > 0);
+    pool = pools[idx];
+  }
+
   const choice = pool[rand(pool.length)];
   used[choice.k] = (used[choice.k] || []).concat(choice.i);
   store.set('uc_used', used);
