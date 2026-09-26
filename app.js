@@ -169,19 +169,23 @@ function rolesError(n, uc, w) {
    Tirage des mots
    ============================================================ */
 
-// Chaque niveau d'éloignement mélange les trois types de liens (d1 : même catégorie,
-// d2 : association, d3 : tiré par les cheveux) pour que le type de lien reste imprévisible.
+// Listes d1 / d2 / d3 : même catégorie / même univers / même grand thème mais éloignés.
+// Chaque niveau déborde un peu sur ses voisins pour brouiller les frontières.
 const DISTANCE_WEIGHTS = {
-  '1': [65, 30, 5],
-  '2': [30, 45, 25],
-  '3': [10, 35, 55],
+  '1': [80, 20, 0],
+  '2': [20, 60, 20],
+  '3': [0, 20, 80],
   'mix': null, // tirage uniforme sur toutes les paires
 };
+
+// Paires déjà jouées ; clé à changer quand les listes sont refaites
+const USED_KEY = 'uc_used_v2';
 
 function pickPair() {
   const rs = settings.rarity === 'mix' ? ['1', '2', '3'] : [settings.rarity];
   const ds = ['1', '2', '3'];
-  const used = store.get('uc_used', {});
+  const used = store.get(USED_KEY, {});
+  const weights = DISTANCE_WEIGHTS[settings.distance] || [1, 1, 1];
 
   const poolFor = d => {
     const pool = [];
@@ -193,28 +197,28 @@ function pickPair() {
   };
 
   let pools = ds.map(poolFor);
-  if (pools.every(pl => pl.length === 0)) { // tout a été joué : on recommence ces listes
+  // Plus aucune paire disponible pour ce réglage : on recommence les listes concernées
+  if (pools.every((pl, i) => pl.length === 0 || weights[i] === 0)) {
     rs.forEach(r => ds.forEach(d => { used['r' + r + 'd' + d] = []; }));
     pools = ds.map(poolFor);
   }
 
   let pool;
-  const weights = DISTANCE_WEIGHTS[settings.distance];
-  if (!weights) {
+  if (!DISTANCE_WEIGHTS[settings.distance]) {
     pool = pools.flat();
   } else {
-    // Tirage pondéré du type de lien, parmi ceux qui ont encore des paires disponibles
+    // Tirage pondéré du type de liste, parmi celles qui ont encore des paires disponibles
     const w = weights.map((x, i) => (pools[i].length ? x : 0));
     let t = Math.random() * w.reduce((a, b) => a + b, 0);
     let idx = 0;
     while (idx < w.length - 1 && (t -= w[idx]) >= 0) idx++;
-    if (!pools[idx].length) idx = w.findIndex(x => x > 0);
+    if (!w[idx]) idx = w.findIndex(x => x > 0);
     pool = pools[idx];
   }
 
   const choice = pool[rand(pool.length)];
   used[choice.k] = (used[choice.k] || []).concat(choice.i);
-  store.set('uc_used', used);
+  store.set(USED_KEY, used);
 
   const pair = choice.p.slice();
   if (Math.random() < 0.5) pair.reverse();
