@@ -179,7 +179,7 @@ const DISTANCE_WEIGHTS = {
 };
 
 // Paires déjà jouées ; clé à changer quand les listes sont refaites
-const USED_KEY = 'uc_used_v2';
+const USED_KEY = 'uc_used_v3';
 
 function pickPair() {
   const rs = settings.rarity === 'mix' ? ['1', '2', '3'] : [settings.rarity];
