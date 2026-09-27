@@ -179,7 +179,7 @@ const DISTANCE_WEIGHTS = {
 };
 
 // Paires déjà jouées ; clé à changer quand les listes sont refaites
-const USED_KEY = 'uc_used_v3';
+const USED_KEY = 'uc_used_v4';
 
 function pickPair() {
   const rs = settings.rarity === 'mix' ? ['1', '2', '3'] : [settings.rarity];
@@ -417,6 +417,7 @@ function renderSetup() {
       ${seg(RARITY_OPTS, settings.rarity, 'rarity')}
       <p class="seg-label">Éloignement entre les deux mots</p>
       ${seg(DISTANCE_OPTS, settings.distance, 'distance')}
+      <button class="link-btn examples-btn" id="examples">Voir 3 exemples pour ces réglages</button>
     </section>
 
     <section class="card">
@@ -479,6 +480,7 @@ function renderSetup() {
   });
   document.getElementById('start').onclick = startGame;
   document.getElementById('rules').onclick = showRules;
+  document.getElementById('examples').onclick = showExamples;
 }
 
 /* ---------- Distribution des mots ---------- */
@@ -869,6 +871,28 @@ function confirmModal(text, okLabel, onOk) {
     </div>`);
   document.getElementById('m-cancel').onclick = closeModal;
   document.getElementById('m-ok').onclick = () => { closeModal(); onOk(); };
+}
+
+// Exemples : 3 paires par combinaison, mises de côté à la génération des listes
+// (clés x_rXdY) et donc jamais tirées en partie.
+function showExamples() {
+  const rs = settings.rarity === 'mix' ? ['1', '2', '3'] : [settings.rarity];
+  const ds = settings.distance === 'mix' ? ['1', '2', '3'] : [settings.distance];
+  let pairs = [];
+  rs.forEach(r => ds.forEach(d => { pairs = pairs.concat(WORDS['x_r' + r + 'd' + d] || []); }));
+  // Réglage « Mélangé » : 3 exemples pris au hasard parmi les combinaisons concernées
+  if (pairs.length > 3) pairs = shuffle(pairs.slice()).slice(0, 3);
+
+  const label = (opts, v) => opts.find(o => o.v === v).label;
+  openModal(`
+    <h2>Exemples</h2>
+    <p class="muted">Rareté : ${label(RARITY_OPTS, settings.rarity)} · Éloignement : ${label(DISTANCE_OPTS, settings.distance)}</p>
+    <ul class="examples">
+      ${pairs.map(p => `<li><span>${esc(p[0])}</span><span class="vs">/</span><span>${esc(p[1])}</span></li>`).join('')}
+    </ul>
+    <p class="hint">Ces paires ne sortiront jamais en partie.</p>
+    <button class="btn" id="m-close">Fermer</button>`);
+  document.getElementById('m-close').onclick = closeModal;
 }
 
 function showRules() {
